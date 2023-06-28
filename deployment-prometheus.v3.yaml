@@ -1,0 +1,51 @@
+# prometheus/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: deployment-prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: pod-prometheus
+        resources:
+          limits:
+            memory: 1024Mi
+            cpu: 1000m
+          requests:
+            memory: 512Mi
+            cpu: 100m
+        image: prom/prometheus:v2.44.0
+        args:
+          - "--web.listen-address=:9090"
+          - "--config.file=/etc/prometheus/prometheus.yml"
+          - "--storage.tsdb.path=/prometheus"
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: prometheus-config-volume
+          mountPath: /etc/prometheus
+
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+            defaultMode: 420
+            name: prometheus-config
